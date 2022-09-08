@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import ast
 import logging
 import os
 import six
@@ -10,10 +9,22 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-import kathprfi.kathprfi_single_file as kathp
+import utils.kathprfi_single_file as kathp
 
 INTERNAL_CONFIG = "resources/config/privateConfig.kvp"
-UNKNOWN_CORRELATOR_MODE_MESSAGE = "Unknown correlator value '%s' is not one of %s"
+UNKNOWN_CORRELATOR_MODE_MESSAGE_FORMAT = "Unknown correlator value '%s' is not one of %s"
+ADD_FILE_MESSAGE_FORMAT = 'Adding file {} : {}'
+REMOVE_BAD_ANTENNA_MESSAGE = 'Removing bad antennas'
+REMOVED_BAD_ANTENNA_MESSAGE = 'Bad antennas has been removed.'
+GOOD_FLAGS_MESSAGE = 'Good flags has been returned'
+START_UPDATE_ARRAY_MESSAGE = 'Start to update the master and counter array'
+UPDATE_TIME_MESSAGE_FORMAT = '{} s has been taken to update file number {}'
+CREATE_XRAY_MESSAGE = 'Creating Xarray Dataset'
+SAVED_DATASET_MESSAGE = 'Dataset has been saved'
+SELECTION_PROBLEM_MESSAGE_FORMAT = '{} selection has a problem'
+CHANNEL_PROBLEM_MESSAGE = 'Channel/dump has a problem'
+FILE_SAVED_MESSAGE = 'File has been saved'
+SAVING_DATASET_MESSAGE = 'Saving dataset'
 
 def initialize_logs():
     """
@@ -63,7 +74,7 @@ def main():
     try:
         freq_chan = internalConfig[correlator_mode]
     except KeyError:
-        logging.error(UNKNOWN_CORRELATOR_MODE_MESSAGE.format(correlator_mode, internalConfig.keys()))
+        logging.error(UNKNOWN_CORRELATOR_MODE_MESSAGE_FORMAT.format(correlator_mode, internalConfig.keys()))
 
     # Read in csv file with files to process
     data = pd.read_csv(filename) #todo: consider doing this in __init__.py after loading the config
@@ -75,19 +86,19 @@ def main():
         master = np.zeros((24, 4096, 2016, 8, 24), dtype=np.uint16)
         counter = np.zeros((24, 4096, 2016, 8, 24), dtype=np.uint16)
         s = tme.time()
-        logging.info('Adding file {} : {}'.format(i, f[i]))
+        logging.info(ADD_FILE_MESSAGE_FORMAT.format(i, f[i]))
         try:
             pathvis = f[i]
             vis = kathp.readfile(pathvis)
             logging.info('File number {} has been read'.format(i))
             
             if len(vis.freqs) == freq_chan and vis.dump_period > (dump_rate-1) and vis.dump_period <= dump_rate:
-                logging.info('Removing bad antennas')
+                logging.info(REMOVE_BAD_ANTENNA_MESSAGE)
                 clean_ants = kathp.remove_bad_ants(vis)
-                logging.info('Bad antennas has been removed.')
+                logging.info(REMOVED_BAD_ANTENNA_MESSAGE)
                 good_flags = kathp.selection(vis, pol_to_use=pol, corrprod=corrpro, scan=scans,
                                              clean_ants=clean_ants, flag_type=flags)
-                logging.info('Good flags has been returned')
+                logging.info(GOOD_FLAGS_MESSAGE)
                 if good_flags.shape[0] * good_flags.shape[1] * good_flags.shape[2] != 0:
                     # Updating the array
                     ntime = good_flags.shape[0]
@@ -99,7 +110,7 @@ def main():
                     elbins = np.linspace(10, 80, 8)
                     azbins = np.arange(0, 360, 15)
                     el, az = kathp.get_az_and_el(vis)
-                    logging.info('Start to update the master and counter array')
+                    logging.info(START_UPDATE_ARRAY_MESSAGE)
                     for tm in six.moves.range(0, ntime, time_step):
                         time_slice = slice(tm, tm + time_step)
                         flag_chunk = good_flags[time_slice].astype(int)
@@ -111,32 +122,30 @@ def main():
                         Az_idx = kathp.get_az_idx(az, azbins)[time_slice]
                         master, counter = kathp.update_arrays(Time_idx, Bl_idx, El_idx, Az_idx,
                                                               flag_chunk, master, counter)
-                    logging.info('{} s has been taken to update file number {}'.format(i,
-                                                                                       tme.time()
-                                                                                       - s))
+                    logging.info(UPDATE_TIME_MESSAGE_FORMAT.format(i, tme.time() - s))
                     goodfiles.append(f[i])
-                    logging.info('Creating Xarray Dataset')
+                    logging.info(CREATE_XRAY_MESSAGE)
                     ds = xr.Dataset({'master': (('time', 'frequency', 'baseline', 'elevation',
                                                  'azimuth'), master),
                    'counter': (('time', 'frequency', 'baseline', 'elevation', 'azimuth'), counter)},
                    {'time': np.arange(24), 'frequency': vis.freqs, 'baseline': np.arange(2016),
                        'elevation': np.linspace(10, 80, 8), 'azimuth': np.arange(0, 360, 15)})
-                    logging.info('Saving dataset')
+                    logging.info(SAVING_DATASET_MESSAGE)
                     name, ext = os.path.splitext(args.zarr)
                     flname = name+str(f[i][46:56])+ext
                     ds.to_zarr(flname, group='arr')
-                    logging.info('Dataset has been saved')
+                    logging.info(SAVED_DATASET_MESSAGE)
                 else:
-                    logging.info('{} selection has a problem'.format(f[i]))
+                    logging.info(SELECTION_PROBLEM_MESSAGE_FORMAT.format(f[i]))
                     badfiles.append(f[i])
                     pass
             else:
-                logging.info('Channel/dump has a problem')
+                logging.info(CHANNEL_PROBLEM_MESSAGE)
                 badfiles.append(f[i])
                 pass
             np.save(args.good,goodfiles)
             np.save(args.bad,badfiles)
-            logging.info('File has been saved')
+            logging.info(FILE_SAVED_MESSAGE)
             
 
         except Exception as e:
