@@ -26,7 +26,8 @@ def readfile(path):
     vis = katdal.open(path)
     return vis
 
-
+#todo: consider replacing with know parser and rename the config files to use a file extention that suggests the new parser.
+#todo: qualify the config entries e.g known keys, known values must be be used in config if there are such
 def config2dic(filepath):
     """
     Read a configuration file which will be passed into

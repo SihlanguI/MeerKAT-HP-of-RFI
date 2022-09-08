@@ -1,0 +1,8 @@
+needs a requirements.txt file or a pip install option which you then mention in the readme
+remove magic numbers
+readme needs update of how to run the code
+consider adding error handling - ie handle all cases of an if statement for example
+use a more specific file extention that tells us about the format of the file for the config file rather than txt because that suggests unstructured text meanwhile the file does have a format of sorts.
+organise your files into different directories for different types of files (ie source files together (can have sub-folders/modules, config files together, etc.
+make use of __init__.py file to setup, initialise and load config.
+break off code into smaller functions.

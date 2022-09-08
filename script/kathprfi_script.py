@@ -10,8 +10,10 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-import kathprfi_single_file as kathp
+import kathprfi.kathprfi_single_file as kathp
 
+INTERNAL_CONFIG = "resources/config/privateConfig.kvp"
+UNKNOWN_CORRELATOR_MODE_MESSAGE = "Unknown correlator value '%s' is not one of %s"
 
 def initialize_logs():
     """
@@ -38,13 +40,17 @@ def create_parser():
 
 def main():
     # Initializing the log settings
+    #todo: move the log initialisation to __init__.py
     initialize_logs()
     logging.info('MEERKAT HISTORICAL PROBABILITY OF RADIO FREQUENCY INTERFERENCE FRAMEWORK')
+    #todo: move the parser creation to module __init__.py
     parser = create_parser()
     args = parser.parse_args()
     path2config = os.path.abspath(args.config)
     # Read in dictionary with keys and values from config file
     config = kathp.config2dic(path2config)
+    #todo: consider moving all the config and global var initialisation to module init file __init__.py
+    internalConfig = kathp.config2dic(INTERNAL_CONFIG)
     # Get values from the dictionary
     filename = config['filename']
     name_col = config['name_col']
@@ -54,12 +60,13 @@ def main():
     pol = config['pol_to_use']
     dump_rate = int(config['dump_period'])
     correlator_mode = config['correlator_mode']
-    if correlator_mode == '4k':
-        freq_chan = 4096
-    elif correlator_mode == '32k':
-        freq_chan = 32000
+    try:
+        freq_chan = internalConfig[correlator_mode]
+    except KeyError:
+        logging.error(UNKNOWN_CORRELATOR_MODE_MESSAGE.format(correlator_mode, internalConfig.keys()))
+
     # Read in csv file with files to process
-    data = pd.read_csv(filename)
+    data = pd.read_csv(filename) #todo: consider doing this in __init__.py after loading the config
     f = data[name_col].values
     badfiles = []
     goodfiles = []
@@ -98,7 +105,7 @@ def main():
                         flag_chunk = good_flags[time_slice].astype(int)
                         # average flags from 32k to 4k mode.
                         if correlator_mode == '32k':
-                            flag_chuck = NewFlagChunk(flag_chunk)
+                            flag_chuck = kathp.NewFlagChunk(flag_chunk)
                         Time_idx = kathp.get_time_idx(vis)[time_slice]
                         El_idx = kathp.get_el_idx(el, elbins)[time_slice]
                         Az_idx = kathp.get_az_idx(az, azbins)[time_slice]
