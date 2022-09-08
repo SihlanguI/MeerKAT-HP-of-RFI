@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import argparse
 import logging
 import os
 import six
@@ -10,60 +9,16 @@ import pandas as pd
 import xarray as xr
 
 import utils.kathprfi_single_file as kathp
-
-INTERNAL_CONFIG = "resources/config/privateConfig.kvp"
-UNKNOWN_CORRELATOR_MODE_MESSAGE_FORMAT = "Unknown correlator value '%s' is not one of %s"
-ADD_FILE_MESSAGE_FORMAT = 'Adding file {} : {}'
-REMOVE_BAD_ANTENNA_MESSAGE = 'Removing bad antennas'
-REMOVED_BAD_ANTENNA_MESSAGE = 'Bad antennas has been removed.'
-GOOD_FLAGS_MESSAGE = 'Good flags has been returned'
-START_UPDATE_ARRAY_MESSAGE = 'Start to update the master and counter array'
-UPDATE_TIME_MESSAGE_FORMAT = '{} s has been taken to update file number {}'
-CREATE_XRAY_MESSAGE = 'Creating Xarray Dataset'
-SAVED_DATASET_MESSAGE = 'Dataset has been saved'
-SELECTION_PROBLEM_MESSAGE_FORMAT = '{} selection has a problem'
-CHANNEL_PROBLEM_MESSAGE = 'Channel/dump has a problem'
-FILE_SAVED_MESSAGE = 'File has been saved'
-SAVING_DATASET_MESSAGE = 'Saving dataset'
-
-def initialize_logs():
-    """
-    Initialize the log settings
-    """
-    logging.basicConfig(format='%(message)s', level=logging.INFO)
-
-
-def create_parser():
-    parser = argparse.ArgumentParser(description='This package produces two 5-D arrays, '
-                                                 'which are the counter array and the master array.'
-                                                 'The arrays provides statistics about measured'
-                                                 'RFI from MeerKAT telescope.')
-    parser.add_argument('-c', '--config', action='store', type=str,
-                       help='A config file that does subselction of data')
-    parser.add_argument('-b', '--bad', action='store',  type=str,
-                        help='Path to save list of bad files')
-    parser.add_argument('-g', '--good', action='store', type=str, default='\tmp',
-                        help='Path to save bad files')
-    parser.add_argument('-z', '--zarr', action='store', type=str, default='\tmp',
-                        help='path to save output zarr file')
-    return parser
+from src import initialize_logs, create_parser, INTERNAL_CONFIG, UNKNOWN_CORRELATOR_MODE_MESSAGE_FORMAT, \
+    ADD_FILE_MESSAGE_FORMAT, REMOVE_BAD_ANTENNA_MESSAGE, REMOVED_BAD_ANTENNA_MESSAGE, GOOD_FLAGS_MESSAGE, \
+    START_UPDATE_ARRAY_MESSAGE, UPDATE_TIME_MESSAGE_FORMAT, CREATE_XRAY_MESSAGE, SAVED_DATASET_MESSAGE, \
+    SELECTION_PROBLEM_MESSAGE_FORMAT, CHANNEL_PROBLEM_MESSAGE, FILE_SAVED_MESSAGE, SAVING_DATASET_MESSAGE, \
+    DESCRIPTION_MESSAGE, config, internalConfig, data, FILE_NUMBER_READ_FORMAT, freq_chan, args
 
 
 def main():
-    # Initializing the log settings
-    #todo: move the log initialisation to __init__.py
-    initialize_logs()
-    logging.info('MEERKAT HISTORICAL PROBABILITY OF RADIO FREQUENCY INTERFERENCE FRAMEWORK')
-    #todo: move the parser creation to module __init__.py
-    parser = create_parser()
-    args = parser.parse_args()
-    path2config = os.path.abspath(args.config)
-    # Read in dictionary with keys and values from config file
-    config = kathp.config2dic(path2config)
-    #todo: consider moving all the config and global var initialisation to module init file __init__.py
-    internalConfig = kathp.config2dic(INTERNAL_CONFIG)
+
     # Get values from the dictionary
-    filename = config['filename']
     name_col = config['name_col']
     corrpro = config['corrprod']
     scans = config['scan']
@@ -71,17 +26,11 @@ def main():
     pol = config['pol_to_use']
     dump_rate = int(config['dump_period'])
     correlator_mode = config['correlator_mode']
-    try:
-        freq_chan = internalConfig[correlator_mode]
-    except KeyError:
-        logging.error(UNKNOWN_CORRELATOR_MODE_MESSAGE_FORMAT.format(correlator_mode, internalConfig.keys()))
 
-    # Read in csv file with files to process
-    data = pd.read_csv(filename) #todo: consider doing this in __init__.py after loading the config
     f = data[name_col].values
     badfiles = []
     goodfiles = []
-    for i in range(len(f)):
+    for i in range(len(f)): #todo: if we are processing MS files, it would be faster to use the built in SQL to perform data selections
         # Initializing 5-D arrays
         master = np.zeros((24, 4096, 2016, 8, 24), dtype=np.uint16)
         counter = np.zeros((24, 4096, 2016, 8, 24), dtype=np.uint16)
@@ -90,7 +39,7 @@ def main():
         try:
             pathvis = f[i]
             vis = kathp.readfile(pathvis)
-            logging.info('File number {} has been read'.format(i))
+            logging.info(FILE_NUMBER_READ_FORMAT.format(i))
             
             if len(vis.freqs) == freq_chan and vis.dump_period > (dump_rate-1) and vis.dump_period <= dump_rate:
                 logging.info(REMOVE_BAD_ANTENNA_MESSAGE)
