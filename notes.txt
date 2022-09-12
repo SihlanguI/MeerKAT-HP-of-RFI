@@ -6,3 +6,4 @@ use a more specific file extention that tells us about the format of the file fo
 organise your files into different directories for different types of files (ie source files together (can have sub-folders/modules, config files together, etc.
 make use of __init__.py file to setup, initialise and load config.
 break off code into smaller functions.
+references should be reletive to location in the project so that the source is self contained- try avoid commiting items referencing things outside the source and its dependencies

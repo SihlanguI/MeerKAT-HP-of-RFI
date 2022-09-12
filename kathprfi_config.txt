@@ -1,5 +1,5 @@
-filename=/home/isaac/RFI_WORK/All_imaging_2020_2021_observations.csv
-name_col=FullLink
+filename=/home/prince/workspace/kathprfi/resources/config/data.csv
+name_col=name_col
 corrprod=cross
 scan=track
 flag_type=cal_rfi
