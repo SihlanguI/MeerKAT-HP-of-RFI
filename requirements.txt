@@ -1,0 +1,7 @@
+Numpy
+Katdal
+Pandas
+Dask
+xarrays
+Numba
+scikit-image
