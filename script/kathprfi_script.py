@@ -25,14 +25,18 @@ def create_parser():
                                                  'which are the counter array and the master array.'
                                                  'The arrays provides statistics about measured'
                                                  'RFI from MeerKAT telescope.')
-    parser.add_argument('-c', '--config', action='store', type=str,
-                       help='A config file that does subselction of data')
+
+    DEFAULT_OUTPUT_DIR  = "/path/to/save_output_zarr"
+    DEFAULT_FILE_PATH = "/path/to/.csv_files"
+    
     parser.add_argument('-b', '--bad', action='store',  type=str,
                         help='Path to save list of bad files')
-    parser.add_argument('-g', '--good', action='store', type=str, default='\tmp',
+    parser.add_argument('-g', '--good', action='store', type=str, default=DEFAULT_OUTPUT_DIR,
                         help='Path to save bad files')
-    parser.add_argument('-z', '--zarr', action='store', type=str, default='\tmp',
+    parser.add_argument('-z', '--zarr', action='store', type=str, default=DEFAULT_OUTPUT_DIR,
                         help='path to save output zarr file')
+    parser.add_argument('-f', '--filename', action='store', type=str, default=DEFAULT_FILE_PATH,
+                        help='Path to the CSV file')
     return parser
 
 
@@ -42,12 +46,19 @@ def main():
     logging.info('MEERKAT HISTORICAL PROBABILITY OF RADIO FREQUENCY INTERFERENCE FRAMEWORK')
     parser = create_parser()
     args = parser.parse_args()
-    path2config = os.path.abspath(args.config)
-    # Read in dictionary with keys and values from config file
-    config = kathp.config2dic(path2config)
+    band = 'U'  # specify the band (u, l, or s)
+    pol_to_use = 'HH'
+    filename = args.filename
+    config = {
+        'corrprod': 'cross',
+        'scan': 'track',
+        'flag_type': 'cal_rfi',
+        'pol_to_use': pol_to_use,
+        'correlator_mode': '4k',
+        'dump_period': '8'
+    }
     # Get values from the dictionary
-    filename = config['filename']
-    name_col = config['name_col']
+    name_col = filename['FullLink']
     corrpro = config['corrprod']
     scans = config['scan']
     flags = config['flag_type']
