@@ -25,9 +25,10 @@ class SARAOArchiveQuery:
             if 'CaptureBlockId' in observation and observation['ProposalId'][:3] == 'SCI':
                 center_freq = round(observation['CenterFrequency'] + observation['ChannelWidth'])
                 bandwidth = observation['Bandwidth']
-                print(center_freq, bandwidth)
-                num_chan = 4096
-                if center_freq == 816000000 and bandwidth == 875e6 and num_chan == num_chan:
+                num_chan = observation["NumFreqChannels"]
+                dump_rate = observation["DumpPeriod"]
+
+                if center_freq == 816000000 and bandwidth == 875e6 and num_chan == num_chan and dump_rate==dump_rate:
                     filename = f"http://archive-gw-1.kat.ac.za:7480/{observation['CaptureBlockId']}/{observation['CaptureBlockId']}_sdp_l0.full.rdb"
                     imaging_links.append(filename)
                     imaging_info.append(katdal.open(filename))
