@@ -16,8 +16,8 @@ class SARAOArchiveQuery:
     @staticmethod
     def arg_parser():
         parser = argparse.ArgumentParser(description='SARAO Archive Query')
-        parser.add_argument('--start_time', type=str, required=True, help='Start time (format: YYYY-MM-DDTHH:MM:SSZ)')
-        parser.add_argument('--end_time', type=str, required=True, help='End time (format: YYYY-MM-DDTHH:MM:SSZ)')
+        parser.add_argument('-s', '--start_time', type=str, required=True, help='Start time (format: YYYY-MM-DDTHH:MM:SSZ)')
+        parser.add_argument('-e', '--end_time', type=str, required=True, help='End time (format: YYYY-MM-DDTHH:MM:SSZ)')
         parser.add_argument('--band', type=str, choices=['L', 'U'], default='L', help='Band of interest (L or U)')
         parser.add_argument('-t', '--dump_rate', type=float, default=8, help='Dump rate')
         parser.add_argument('-f', '--channel_mode', type=int, default=4096, help='Number of frequency channels')
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Create SARAOArchiveQuery instance and perform query and processing
-    archive_query = SARAOArchiveQuery(args.start_time, args.end_time, args.band)
+    archive_query = SARAOArchiveQuery(args.start_time, args.end_time, args.band, args.dump_rate, args.channel_mode)
     search_results = archive_query.search_archive()
     imaging_links, imaging_info = archive_query.process_results(search_results)
     archive_query.save_to_csv(imaging_links, imaging_info)

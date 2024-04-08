@@ -94,7 +94,7 @@ def remove_bad_ants(vis):
     return AntList
 
 
-def selection(vis, pol_to_use, corrprod, scan, clean_ants, flag_type):
+def selection(vis, pol, corrprod, scan, clean_ants, flag_type):
     """
     Do subselection of the dataset based on the given parameters.
     
