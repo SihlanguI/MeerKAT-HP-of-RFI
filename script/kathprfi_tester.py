@@ -19,7 +19,7 @@ def initialize_logs():
     """
     Initialize the log settings
     """
-    logging.basicConfig(format='%(message)s', level=logging.INFO)
+    logging.basicConfig(filename = 'kathprfi_logs.log', format='%(message)s', level=logging.INFO)
 
 
 def create_parser():
@@ -45,21 +45,20 @@ def create_parser():
     parser.add_argument('--flag_type', type=str, choices=['cal_rfi', 'ingest_rfi','data_lost','cam'], default='cal_rfi', help='flag type of interest')
 
     return parser
-
-
+   
 def main():
-    # Initializing the log settings
+     # Initializing the log settings
     initialize_logs()
     logging.info('MEERKAT HISTORICAL PROBABILITY OF RADIO FREQUENCY INTERFERENCE FRAMEWORK')
+    # Configuration dictionary directly in the script
     parser = create_parser()
     args = parser.parse_args()
     pol = args.pol
     corrprod = args.corrprod
     scan = args.scan
     flag_type = args.flag_type
-    # Configuration dictionary directly in the script
     csv_file = pd.read_csv('sci_Imaging_L_2024-01-01T00:00:00Z_2024-01-31T00:00:00Z.csv')
-    filename = csv_file['FullLink']
+    filename = csv_file['FullLink'][:9]
     # Read in csv file with files to process
     data = filename
     badfiles = []
@@ -84,6 +83,7 @@ def main():
             good_flags = kathp.selection(vis, pol=pol, corrprod=corrprod, scan=scan,
                                             clean_ants=clean_ants, flag_type=flag_type)
             logging.info('Good flags has been returned')
+         
             if good_flags.shape[0] * good_flags.shape[1] * good_flags.shape[2] != 0:
                 # Updating the array
                 ntime = good_flags.shape[0]
@@ -101,7 +101,7 @@ def main():
                     flag_chunk = good_flags[time_slice].astype(int)
                     # average flags from 32k to 4k mode.
                     if good_flags.shape[1] == 32768:
-                        flag_chuck = NewFlagChunk(flag_chunk)
+                        flag_chuck = kathp.NewFlagChunk(flag_chunk)
                     Time_idx = kathp.get_time_idx(vis)[time_slice]
                     El_idx = kathp.get_el_idx(el, elbins)[time_slice]
                     Az_idx = kathp.get_az_idx(az, azbins)[time_slice]
@@ -120,7 +120,7 @@ def main():
                 logging.info('Saving dataset')
                 name, ext = os.path.splitext(args.zarr)
                 flname = name+str(filename[i][46:56])+ext
-                ds.to_zarr(flname, group='arr')
+                ds.to_zarr(flname) #, group='arr')
                 logging.info('Dataset has been saved')
             else:
                 logging.info('{} selection has a problem'.format(filename[i]))
