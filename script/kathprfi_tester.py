@@ -19,6 +19,7 @@ def initialize_logs():
     """
     Initialize the log settings
     """
+    logging.basicConfig(format='%(message)s', level=logging.INFO)
     logging.basicConfig(filename = 'kathprfi_logs.log', format='%(message)s', level=logging.INFO)
 
 
@@ -28,8 +29,8 @@ def create_parser():
             'The arrays provides statistics about measured'
             'RFI from MeerKAT telescope.')
     #define the default values for the configuration
-    DEFAULT_OUTPUT_DIR  = "/scratch/kvanqa/RFI_work/KATHPRFI/OUT_ZARR/U_HH_.zarr"
-    DEFAULT_FILE_PATH = "/scratch/kvanqa/RFI_work/sci_Imaging_L_2024-01-01T00:00:00Z_2024-01-31T00:00:00Z.csv"
+    DEFAULT_OUTPUT_DIR  = "/scratch/kvanqa/RFI_work/"
+    DEFAULT_FILE_PATH = "/scratch/kvanqa/RFI_work/katfprfi_cvs/sci_Imaging_L_2023-11-01T00:00:00Z_2023-11-30T00:00:00Z.csv"
 
     parser.add_argument('-b', '--bad', action='store',  type=str,
                         help='Path to save list of bad files')
@@ -57,10 +58,10 @@ def main():
     corrprod = args.corrprod
     scan = args.scan
     flag_type = args.flag_type
-    csv_file = pd.read_csv('sci_Imaging_L_2024-01-01T00:00:00Z_2024-01-31T00:00:00Z.csv')
-    filename = csv_file['FullLink'][:9]
+    filename_path = args.filename
+    data = pd.read_csv(filename_path)
+    filename = data['FullLink'].values
     # Read in csv file with files to process
-    data = filename
     badfiles = []
     goodfiles = []
     #@jit(parallel=True)
@@ -76,56 +77,63 @@ def main():
             vis = kathp.readfile(pathvis)
             logging.info('File number {} has been read'.format(i))
             #import pdb; pdb.set_trace()
+            if len(vis.freqs) == 4096:
 
-            logging.info('Removing bad antennas')
-            clean_ants = kathp.remove_bad_ants(vis)
-            logging.info('Bad antennas has been removed.')
-            good_flags = kathp.selection(vis, pol=pol, corrprod=corrprod, scan=scan,
-                                            clean_ants=clean_ants, flag_type=flag_type)
-            logging.info('Good flags has been returned')
+                logging.info('Removing bad antennas')
+                clean_ants = kathp.remove_bad_ants(vis)
+                logging.info('Bad antennas has been removed.')
+                good_flags = kathp.selection(vis, pol=pol, corrprod=corrprod, scan=scan,
+                                                clean_ants=clean_ants, flag_type=flag_type)
+                logging.info('Good flags has been returned')
          
-            if good_flags.shape[0] * good_flags.shape[1] * good_flags.shape[2] != 0:
-                # Updating the array
-                ntime = good_flags.shape[0]
-                time_step = 1
-                if ntime <= time_step:
-                    time_step = ntime
-                nant = 64
-                Bl_idx = kathp.get_bl_idx(vis, nant)
-                elbins = np.linspace(10, 80, 8)
-                azbins = np.arange(0, 360, 15)
-                el, az = kathp.get_az_and_el(vis)
-                logging.info('Start to update the master and counter array')
-                for tm in six.moves.range(0, ntime, time_step):
-                    time_slice = slice(tm, tm + time_step)
-                    flag_chunk = good_flags[time_slice].astype(int)
-                    # average flags from 32k to 4k mode.
-                    if good_flags.shape[1] == 32768:
-                        flag_chuck = kathp.NewFlagChunk(flag_chunk)
-                    Time_idx = kathp.get_time_idx(vis)[time_slice]
-                    El_idx = kathp.get_el_idx(el, elbins)[time_slice]
-                    Az_idx = kathp.get_az_idx(az, azbins)[time_slice]
-                    master, counter = kathp.update_arrays(Time_idx, Bl_idx, El_idx, Az_idx,
-                                                            flag_chunk, master, counter)
-                logging.info('{} s has been taken to update file number {}'.format(i,
-                                                                                    tme.time()
-                                                                                    - s))
-                goodfiles.append(filename[i])
-                logging.info('Creating Xarray Dataset')
-                ds = xr.Dataset({'master': (('time', 'frequency', 'baseline', 'elevation',
-                                                'azimuth'), master),
-                'counter': (('time', 'frequency', 'baseline', 'elevation', 'azimuth'), counter)},
-                {'time': np.arange(24), 'frequency': vis.freqs, 'baseline': np.arange(2016),
-                    'elevation': np.linspace(10, 80, 8), 'azimuth': np.arange(0, 360, 15)})
-                logging.info('Saving dataset')
-                name, ext = os.path.splitext(args.zarr)
-                flname = name+str(filename[i][46:56])+ext
-                ds.to_zarr(flname) #, group='arr')
-                logging.info('Dataset has been saved')
+                if good_flags.shape[0] * good_flags.shape[1] * good_flags.shape[2] != 0:
+                    # Updating the array
+                    ntime = good_flags.shape[0]
+                    time_step = 1
+                    if ntime <= time_step:
+                        time_step = ntime
+                    nant = 64
+                    Bl_idx = kathp.get_bl_idx(vis, nant)
+                    elbins = np.linspace(10, 80, 8)
+                    azbins = np.arange(0, 360, 15)
+                    el, az = kathp.get_az_and_el(vis)
+                    logging.info('Start to update the master and counter array')
+                    for tm in six.moves.range(0, ntime, time_step):
+                        time_slice = slice(tm, tm + time_step)
+                        flag_chunk = good_flags[time_slice].astype(int)
+                        # average flags from 32k to 4k mode.
+                        if good_flags.shape[1] == 32768:
+                            flag_chuck = kathp.NewFlagChunk(flag_chunk)
+                        Time_idx = kathp.get_time_idx(vis)[time_slice]
+                        El_idx = kathp.get_el_idx(el, elbins)[time_slice]
+                        Az_idx = kathp.get_az_idx(az, azbins)[time_slice]
+                        master, counter = kathp.update_arrays(Time_idx, Bl_idx, El_idx, Az_idx,
+                                                                flag_chunk, master, counter)
+                    logging.info('{} s has been taken to update file number {}'.format(i,
+                                                                                        tme.time()
+                                                                                        - s))
+                    goodfiles.append(filename[i])
+                    logging.info('Creating Xarray Dataset')
+                    ds = xr.Dataset({'master': (('time', 'frequency', 'baseline', 'elevation',
+                                                    'azimuth'), master),
+                    'counter': (('time', 'frequency', 'baseline', 'elevation', 'azimuth'), counter)},
+                    {'time': np.arange(24), 'frequency': vis.freqs, 'baseline': np.arange(2016),
+                        'elevation': np.linspace(10, 80, 8), 'azimuth': np.arange(0, 360, 15)})
+                    logging.info('Saving dataset')
+                    name, ext = os.path.splitext(args.zarr)
+                    flname = name+str(filename[i][46:56])+ext
+                    #ds.to_zarr(str(flname[46:56])+ ".zarr",group='arr')
+                    ds.to_zarr(flname, group='arr')
+                    logging.info('Dataset has been saved')
+                else:
+                    logging.info('{} selection has a problem'.format(filename[i]))
+                    badfiles.append(filename[i])
+                    pass
             else:
                 logging.info('{} selection has a problem'.format(filename[i]))
                 badfiles.append(filename[i])
                 pass
+
             np.save(args.good,goodfiles)
             np.save(args.bad,badfiles)
             logging.info('File has been saved')
@@ -143,4 +151,7 @@ if __name__=="__main__":
 end_time = time.time()
 print(f"program's runtime {(end_time - start_time)/60.}")
 
+''' when running the script you simply parse the arguments in the following manner
+ipython kathprfi_tester.py -z . --filename katfprfi_cvs/sci_Imaging_L_2024-01-01T00:00:00Z_2024-01-31T00:00:00Z.csv -p 'HH' -s 'track' --corrprod 'cross' --flag_type 'cal_rfi'
+'''
                    
