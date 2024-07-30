@@ -20,7 +20,7 @@ class SARAOArchiveQuery:
         parser.add_argument('-e', '--end_time', type=str, required=True, help='End time (format: YYYY-MM-DDTHH:MM:SSZ)')
         parser.add_argument('--band', type=str, choices=['L', 'U'], default='L', help='Band of interest (L or U)')
         parser.add_argument('-t', '--dump_rate', type=float, default=8, help='Dump rate')
-        parser.add_argument('-f', '--channel_mode', type=int, default=4096, help='Number of frequency channels')
+        parser.add_argument('-f', '--channel_mode', type=int, help='Number of frequency channels')
         return parser
     
     def search_archive(self):
@@ -48,7 +48,7 @@ class SARAOArchiveQuery:
                 center_freq = round(observation['CenterFrequency'] + observation['ChannelWidth'])
                 bandwidth = observation['Bandwidth']
 
-                if center_freq == target_center_freq and bandwidth == target_bandwidth:
+                if center_freq == target_center_freq and bandwidth == target_bandwidth and round(observation['DumpPeriod']) == 8 :
                     filename = f"http://archive-gw-1.kat.ac.za:7480/{observation['CaptureBlockId']}/{observation['CaptureBlockId']}_sdp_l0.full.rdb"
                     imaging_links.append(filename)
                     imaging_info.append(katdal.open(filename))
@@ -72,4 +72,5 @@ if __name__ == "__main__":
     imaging_links, imaging_info = archive_query.process_results(search_results)
     archive_query.save_to_csv(imaging_links, imaging_info)
 
-
+" RN THE PROGRAM AS FOLLOW ON THE TERMINAL"
+"ipython /home/kvanqa/ALL_WORK/kvanqa/RFI_work/github/kathprfi/Archive_query.py -- --start_time '2024-04-01T00:00:00Z' --end_time '2024-04-30T00:00:00Z' --band 'U' -t 8 -f 4096"
