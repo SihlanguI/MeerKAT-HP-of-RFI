@@ -5,9 +5,9 @@ import numpy as np
 import pandas as pd
 from numba import jit
 from numba import prange
-import logging
-from skimage.measure import block_reduce
 
+from skimage.measure import block_reduce
+import logging
 def initialize_logs():
     """
     Initialize the log settings
@@ -16,6 +16,7 @@ def initialize_logs():
 
 def readfile(path):
     """
+<<<<<<< HEAD
     Read in the morRDB file.
 
     Parameters

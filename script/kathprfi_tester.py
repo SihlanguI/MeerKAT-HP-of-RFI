@@ -155,5 +155,6 @@ print(f"program's runtime {(end_time - start_time)/60.}")
 
 ''' when running the script you simply parse the arguments in the following manner
 ipython kathprfi_tester.py -- -z . --filename katfprfi_cvs/sci_Imaging_L_2024-01-01T00:00:00Z_2024-01-31T00:00:00Z.csv -p 'HH' -s 'track' --corrprod 'cross' --flag_type 'cal_rfi'
+
 '''
                    
