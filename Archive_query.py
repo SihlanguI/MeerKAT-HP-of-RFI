@@ -48,7 +48,8 @@ class SARAOArchiveQuery:
                 center_freq = round(observation['CenterFrequency'] + observation['ChannelWidth'])
                 bandwidth = observation['Bandwidth']
 
-                if center_freq == target_center_freq and bandwidth == target_bandwidth and round(observation['DumpPeriod']) == 8 :
+                if (center_freq == target_center_freq and bandwidth == target_bandwidth and 
+		    round(observation['DumpPeriod']) == 8 and observation['NumFreqChannels'] != 1024):
                     filename = f"http://archive-gw-1.kat.ac.za:7480/{observation['CaptureBlockId']}/{observation['CaptureBlockId']}_sdp_l0.full.rdb"
                     imaging_links.append(filename)
                     imaging_info.append(katdal.open(filename))
