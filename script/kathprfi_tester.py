@@ -121,9 +121,10 @@ def main():
                     {'time': np.arange(24), 'frequency': vis.freqs, 'baseline': np.arange(2016),
                         'elevation': np.linspace(10, 80, 8), 'azimuth': np.arange(0, 360, 15)})
                     logging.info('Saving dataset')
-                    name, ext = os.path.splitext(args.zarr)
-                    flname = name+str(filename[i][46:56])+ext
+                    #name, ext = os.path.splitext(args.zarr)
+                    #flname = name+str(filename[i][46:56])+ext
                     #ds.to_zarr(str(flname[46:56])+ ".zarr",group='arr')
+		    flname = os.path.join(os.getcwd(), f"{U}_{pol}_{filename[i][46:56]}.zarr")
                     ds.to_zarr(flname, group='arr')
                     logging.info('Dataset has been saved')
                 else:
