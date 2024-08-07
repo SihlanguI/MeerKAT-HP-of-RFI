@@ -5,13 +5,19 @@ import numpy as np
 import pandas as pd
 from numba import jit
 from numba import prange
+
 from skimage.measure import block_reduce
-
-
+import logging
+def initialize_logs():
+    """
+    Initialize the log settings
+    """
+    logging.basicConfig(format='%(message)s', level=logging.INFO)
 
 def readfile(path):
     """
-    Read in the RDB file.
+<<<<<<< HEAD
+    Read in the morRDB file.
 
     Parameters
     ----------
@@ -121,17 +127,20 @@ def selection(vis, pol, corrprod, scan, clean_ants, flag_type):
     output : katdal.lazy_indexer.DaskLazyIndexer
         sub selected katdal lazy indexer of RFI flags
     """
+    initialize_logs()
+    logging.info('checks cal report')
     good_tags = set(["target", "bpcal", "delaycal","fluxcal","gaincal","polcal"])
     good_targets = []
-    target = vis.catalogue.targets[vis.target_indices[2]]
+    # target = vis.catalogue.targets[vis.target_indices[2]]
     for tar in vis.target_indices:
         target = vis.catalogue.targets[tar]
         if len(good_tags.intersection(target.tags))>0:
                 good_targets.append(target)
     
-    vis.select(corrprods=corrprod, pol=pol_to_use, scans=scan, ants=clean_ants,
+    vis.select(corrprods=corrprod, pol=pol, scans=scan, ants=clean_ants,
                flags=flag_type, targets = good_targets)
     flag = vis.flags
+    logging.info(f"missing targets {good_tags - set(good_targets)}")
     return flag
 
 def NewFlagChunk(flag_chunk):
